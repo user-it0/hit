@@ -25,32 +25,30 @@ document.getElementById('backButton').addEventListener('click', function() {
     document.getElementById('searchContainer').style.display = 'block';
 });
 
-// iframe内のURL更新
-function updateCurrentUrl() {
-    const iframe = document.getElementById('proxyIframe');
-    document.getElementById('currentUrl').textContent = iframe.contentWindow.location.href;
-}
-
-// iframe内のリンクを親ページで開く
+// リンククリック時にプロキシ経由で開くようにする
 document.getElementById('proxyIframe').addEventListener('load', function() {
+    // iframe内のコンテンツを取得
     const iframe = document.getElementById('proxyIframe');
-    const iframeDocument = iframe.contentWindow.document;
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
-    // iframe内のリンクを取得し、クリックイベントを制御
-    const links = iframeDocument.querySelectorAll('a');
+    // iframe内のすべてのリンクをプロキシ経由に変更
+    const links = iframeDoc.querySelectorAll('a');
     links.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const url = this.href;
+        link.addEventListener('click', function(event) {
+            event.preventDefault(); // デフォルトのリンク遷移を防ぐ
+            let targetUrl = link.href;
 
-            // 新しいURLをiframeで開く
-            iframe.src = url;
-            updateCurrentUrl();
+            // リンク先URLが外部であればプロキシ経由で開く
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                targetUrl = 'http://' + targetUrl;
+            }
+
+            iframe.src = '/fetch?url=' + encodeURIComponent(targetUrl); // プロキシ経由でURLを設定
         });
     });
 });
 
-/* ====== 戻るボタンをドラッグで移動可能にする ====== */
+// 戻るボタンをドラッグで移動可能にするコード（変更なし）
 const backButton = document.getElementById('backButton');
 
 let isDragging = false;
