@@ -1,5 +1,5 @@
 const express = require('express');
-const request = require('request');
+const fetch = require('node-fetch'); // 修正: request -> node-fetch に変更
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -7,16 +7,23 @@ const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 
 // プロキシリクエスト処理
-app.get('/fetch', (req, res) => {
+app.get('/fetch', async (req, res) => {
     const url = req.query.url;
     if (!url) return res.status(400).send('URL is required');
 
-    request(url, (error, response, body) => {
-        if (error) return res.status(500).send('Error fetching URL');
-        res.send(body.replace(/href="(.*?)"/g, (match, link) => {
+    try {
+        const response = await fetch(url);
+        let body = await response.text();
+
+        // すべてのリンクをプロキシ経由に変更
+        body = body.replace(/href="(.*?)"/g, (match, link) => {
             return `href="/fetch?url=${encodeURIComponent(link)}"`;
-        }));
-    });
+        });
+
+        res.send(body);
+    } catch (error) {
+        res.status(500).send('Error fetching URL');
+    }
 });
 
 app.listen(port, () => {
