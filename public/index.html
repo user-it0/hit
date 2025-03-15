@@ -1,29 +1,60 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>web-proxy(M.T.)</title>
+    <title>Web Proxy (M.T.)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="back-button" id="backButton">戻る</div>
 
-    <!-- URL検索モード -->
-    <div id="searchContainer" class="container">
-        <h1>web-proxy(M.T.)</h1>
-        <form id="proxyForm">
-            <input type="text" id="urlInput" placeholder="URLを入力してください" required>
-            <button type="submit">プロキシで開く</button>
-        </form>
-    </div>
+    <iframe id="contentFrame" src="/fetch?url=https://example.com" width="100%" height="100%" frameborder="0"></iframe>
 
-    <!-- 全画面モード -->
-    <div id="proxyContainer" style="display:none;">
-        <!-- 移動可能な戻るボタン -->
-        <div id="backButton" class="draggable">戻る</div>
-        <iframe id="proxyIframe" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
-    </div>
+    <script>
+        // ドラッグ可能な戻るボタン
+        const backButton = document.getElementById("backButton");
+        let isDragging = false;
+        let offsetX, offsetY;
 
-    <script src="script.js"></script>
+        backButton.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            offsetX = e.clientX - backButton.offsetLeft;
+            offsetY = e.clientY - backButton.offsetTop;
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (isDragging) {
+                backButton.style.left = `${e.clientX - offsetX}px`;
+                backButton.style.top = `${e.clientY - offsetY}px`;
+            }
+        });
+
+        window.addEventListener("mouseup", () => {
+            isDragging = false;
+        });
+
+        backButton.addEventListener("click", () => {
+            history.back();
+        });
+
+        // タッチ操作対応
+        backButton.addEventListener("touchstart", (e) => {
+            isDragging = true;
+            offsetX = e.touches[0].clientX - backButton.offsetLeft;
+            offsetY = e.touches[0].clientY - backButton.offsetTop;
+        });
+
+        window.addEventListener("touchmove", (e) => {
+            if (isDragging) {
+                backButton.style.left = `${e.touches[0].clientX - offsetX}px`;
+                backButton.style.top = `${e.touches[0].clientY - offsetY}px`;
+            }
+        });
+
+        window.addEventListener("touchend", () => {
+            isDragging = false;
+        });
+    </script>
 </body>
 </html>
