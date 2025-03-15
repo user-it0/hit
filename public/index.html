@@ -2,21 +2,25 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <!-- モバイル等でも画面サイズに合わせるためのmetaタグ -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>web-proxy</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- 検索モード用コンテナ -->
+    <div id="searchContainer" class="container">
         <h1>web-proxy(M.T.)</h1>
         <form id="proxyForm">
             <input type="text" id="urlInput" placeholder="URLを入力してください" required>
             <button type="submit">プロキシで開く</button>
         </form>
-        <!-- iframe：読み込むコンテンツの高さに合わせてサイズ調整 -->
-        <iframe id="proxyIframe" style="width: 100%; border: none;"></iframe>
     </div>
+
+    <!-- 全画面表示モード用コンテナ -->
+    <div id="proxyContainer" style="display:none;">
+        <button id="backButton">戻る</button>
+        <iframe id="proxyIframe"></iframe>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

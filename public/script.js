@@ -2,26 +2,25 @@ document.getElementById('proxyForm').addEventListener('submit', function(e) {
     e.preventDefault();
     let url = document.getElementById('urlInput').value;
 
-    // プロトコルが無い場合は http:// を追加
+    // プロトコルがない場合は http:// を追加
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'http://' + url;
     }
 
-    const iframe = document.getElementById('proxyIframe');
-    iframe.src = '/fetch?url=' + encodeURIComponent(url);
+    // iframeにリモートURLを設定
+    document.getElementById('proxyIframe').src = '/fetch?url=' + encodeURIComponent(url);
 
-    // 履歴に新たなエントリを追加しないため、URLを親ページで変更しない
+    // 検索モードを非表示にし、全画面モードを表示
+    document.getElementById('searchContainer').style.display = 'none';
+    document.getElementById('proxyContainer').style.display = 'block';
+
+    // 履歴に新規エントリが追加されないようにする
     window.history.replaceState({}, '', window.location.pathname);
 });
 
-// iframe読み込み完了後、コンテンツの高さに合わせてiframeの高さを調整
-document.getElementById('proxyIframe').addEventListener('load', function() {
-    try {
-        // proxiedコンテンツは同一オリジンとして扱われるため高さ取得が可能
-        const iframeDoc = this.contentDocument || this.contentWindow.document;
-        const newHeight = iframeDoc.documentElement.scrollHeight;
-        this.style.height = newHeight + 'px';
-    } catch (error) {
-        console.error('iframeサイズ調整エラー:', error);
-    }
+// 戻るボタン押下で検索モードに戻る
+document.getElementById('backButton').addEventListener('click', function(e) {
+    document.getElementById('proxyContainer').style.display = 'none';
+    document.getElementById('proxyIframe').src = ''; // iframeをクリア
+    document.getElementById('searchContainer').style.display = 'block';
 });
