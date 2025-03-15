@@ -1,7 +1,7 @@
 {
-    "name": "web-proxy.m-t",
+    "name": "web-proxy-m.t.",
     "version": "1.0.0",
-    "description": "study",
+    "description": "Onrender上で動作するシンプルなウェブプロキシー",
     "main": "server.js",
     "scripts": {
       "start": "node server.js"
