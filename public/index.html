@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>web-proxy(M.T.)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>web-proxy(M.T.)</h1>
+        <form id="proxyForm">
+            <input type="text" id="urlInput" placeholder="URLを入力してください" required>
+            <button type="submit">プロキシで開く</button>
+        </form>
+        <!-- iframeの追加 -->
+        <iframe id="proxyIframe" style="width: 100%; height: 600px; border: none;"></iframe>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
