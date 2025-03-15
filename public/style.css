@@ -1,71 +1,71 @@
 /* ページ全体の基本設定 */
 body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: Arial, sans-serif;
 }
 
 /* 検索モードのコンテナ */
 .container {
-    max-width: 600px;
-    margin: 100px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  max-width: 600px;
+  margin: 100px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 input[type="text"] {
-    width: 80%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+  width: 80%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 button {
-    padding: 10px 20px;
-    border: none;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 10px 20px;
+  border: none;
+  background-color: #007BFF;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 button:hover {
-    background-color: #0056b3;
+  background-color: #0056b3;
 }
 
 /* 全画面表示モードの設定 */
 #proxyContainer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #fff;
 }
 
 /* iframeは全画面を占有 */
 #proxyIframe {
-    width: 100%;
-    height: 100%;
-    border: none;
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 /* 左上の戻るボタン */
 #backButton {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    padding: 15px 25px;
-    background-color: #FF5722;
-    color: #fff;
-    font-size: 16px;
-    border: none;
-    border-radius: 4px;
-    z-index: 1000;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 15px 25px;
+  background-color: #FF5722;
+  color: #fff;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  z-index: 1000;
 }
