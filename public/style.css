@@ -1,47 +1,105 @@
-/* 全体的なスタイル */
-body {
+/* スマートフォン対応の基本設定 */
+body, html {
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #f4f4f4;
-}
-
-iframe {
-  flex: 1;
   width: 100%;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  overflow: hidden; /* スクロール防止 */
 }
 
-.back-button {
-  position: absolute;
-  top: 20px;
-  left: 20px;
+/* 検索モードのコンテナ */
+.container {
+  max-width: 90%;
+  margin: 100px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+input[type="text"] {
+  width: 80%;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+button {
   padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
   border: none;
-  font-size: 18px;
+  background-color: #007BFF;
+  color: white;
+  font-size: 16px;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 5px;
-  z-index: 999;
-  transition: background-color 0.3s;
 }
 
-.back-button:hover {
+button:hover {
   background-color: #0056b3;
 }
 
-/* スマートフォン対応 */
-@media (max-width: 768px) {
-  iframe {
-      height: 80%;
-  }
+/* 全画面モード */
+#proxyContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #fff;
 }
 
-@media (max-width: 480px) {
-  .back-button {
-      font-size: 16px;
-      padding: 8px 16px;
+/* iframeを全画面表示 */
+#proxyIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 戻るボタン（移動可能） */
+#backButton {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 80px;
+  height: 80px;
+  background-color: #FF5722;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: grab;
+  touch-action: none; /* タッチデバイスのスクロールを防ぐ */
+  z-index: 1000;
+}
+
+/* ボタンを掴んでいる時のカーソル */
+#backButton:active {
+  cursor: grabbing;
+}
+
+/* URL表示エリア */
+.current-url {
+  position: absolute;
+  top: 10px;
+  left: 100px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* スマホ対応（画面が小さいときはボタンを少し小さく） */
+@media (max-width: 600px) {
+  #backButton {
+      width: 60px;
+      height: 60px;
+      font-size: 14px;
   }
 }
