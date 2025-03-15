@@ -8,7 +8,7 @@
 </head>
 <body>
 
-    <!-- 検索モード（URL入力） -->
+    <!-- URL検索モード -->
     <div id="searchContainer" class="container">
         <h1>web-proxy(M.T.)</h1>
         <form id="proxyForm">
@@ -17,11 +17,11 @@
         </form>
     </div>
 
-    <!-- 全画面表示モード -->
+    <!-- 全画面モード -->
     <div id="proxyContainer" style="display:none;">
         <!-- 移動可能な戻るボタン -->
         <div id="backButton" class="draggable">戻る</div>
-        <iframe id="proxyIframe"></iframe>
+        <iframe id="proxyIframe" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
     </div>
 
     <script src="script.js"></script>

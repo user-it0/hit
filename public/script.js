@@ -2,66 +2,77 @@ document.getElementById('proxyForm').addEventListener('submit', function(e) {
     e.preventDefault();
     let url = document.getElementById('urlInput').value;
 
-    // プロトコルがない場合は http:// を追加
+    // URLがプロトコルなしなら http:// を付ける
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'http://' + url;
     }
 
-    // iframeにリモートURLを設定
+    loadURL(url);
+});
+
+function loadURL(url) {
     document.getElementById('proxyIframe').src = '/fetch?url=' + encodeURIComponent(url);
 
-    // 検索モードを非表示にし、全画面モードを表示
+    // 検索画面を非表示にして全画面表示
     document.getElementById('searchContainer').style.display = 'none';
     document.getElementById('proxyContainer').style.display = 'block';
 
-    // 履歴を増やさない
+    // 履歴を変更せずにURLを更新
     window.history.replaceState({}, '', window.location.pathname);
+}
 
-    // iframe 内のリンクやフォームもプロキシ化する
-    setTimeout(enableProxyLinks, 2000);
-});
-
-// 戻るボタンで検索画面に戻る
+// 戻るボタンの処理
 document.getElementById('backButton').addEventListener('click', function() {
     document.getElementById('proxyContainer').style.display = 'none';
-    document.getElementById('proxyIframe').src = ''; // iframeをクリア
+    document.getElementById('proxyIframe').src = ''; // iframeリセット
     document.getElementById('searchContainer').style.display = 'block';
 });
 
-// iframe 内のリンクやフォームをすべてプロキシ経由にする
-function enableProxyLinks() {
-    let iframe = document.getElementById('proxyIframe');
+/* ====== 戻るボタンをドラッグで移動可能にする ====== */
+const backButton = document.getElementById('backButton');
+let isDragging = false;
+let offsetX, offsetY;
 
-    iframe.onload = function() {
-        try {
-            let doc = iframe.contentDocument || iframe.contentWindow.document;
+backButton.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    offsetX = e.clientX - backButton.getBoundingClientRect().left;
+    offsetY = e.clientY - backButton.getBoundingClientRect().top;
+    backButton.style.cursor = "grabbing";
+});
 
-            // すべてのリンクを書き換え
-            let links = doc.getElementsByTagName('a');
-            for (let i = 0; i < links.length; i++) {
-                links[i].href = '/fetch?url=' + encodeURIComponent(links[i].href);
-            }
+backButton.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    const touch = e.touches[0];
+    offsetX = touch.clientX - backButton.getBoundingClientRect().left;
+    offsetY = touch.clientY - backButton.getBoundingClientRect().top;
+    backButton.style.cursor = "grabbing";
+});
 
-            // すべてのフォームを書き換え
-            let forms = doc.getElementsByTagName('form');
-            for (let i = 0; i < forms.length; i++) {
-                forms[i].action = '/fetch?url=' + encodeURIComponent(forms[i].action);
-            }
+document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+        backButton.style.left = `${x}px`;
+        backButton.style.top = `${y}px`;
+    }
+});
 
-            // JavaScript による URL 変更を監視
-            let observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'href') {
-                        let newUrl = mutation.target.href;
-                        mutation.target.href = '/fetch?url=' + encodeURIComponent(newUrl);
-                    }
-                });
-            });
+document.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+        const touch = e.touches[0];
+        let x = touch.clientX - offsetX;
+        let y = touch.clientY - offsetY;
+        backButton.style.left = `${x}px`;
+        backButton.style.top = `${y}px`;
+    }
+});
 
-            observer.observe(doc, { attributes: true, subtree: true });
+document.addEventListener('mouseup', () => {
+    isDragging = false;
+    backButton.style.cursor = "grab";
+});
 
-        } catch (e) {
-            console.error('iframe の変更に失敗しました:', e);
-        }
-    };
-}
+document.addEventListener('touchend', () => {
+    isDragging = false;
+    backButton.style.cursor = "grab";
+});
