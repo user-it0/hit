@@ -18,7 +18,7 @@ app.get('/fetch', async (req, res) => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
             redirect: 'follow', // リダイレクトを許可
-            follow: 200, // 最大リダイレクト回数
+            follow: 20, // 最大リダイレクト回数
         });
 
         if (!response.ok) {
