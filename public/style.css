@@ -84,22 +84,11 @@ button:hover {
   cursor: grabbing;
 }
 
-/* URL表示エリア */
-.current-url {
-  position: absolute;
-  top: 10px;
-  left: 100px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
 /* スマホ対応（画面が小さいときはボタンを少し小さく） */
 @media (max-width: 600px) {
   #backButton {
-      width: 60px;
-      height: 60px;
-      font-size: 14px;
+    width: 60px;
+    height: 60px;
+    font-size: 14px;
   }
 }

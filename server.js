@@ -1,65 +1,149 @@
 const express = require('express');
-const fetch = require('node-fetch');  // node-fetch を使用
+const axios = require('axios');
+const cheerio = require('cheerio');
+const path = require('path');
+const fs = require('fs');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// URLの変更に対応する
-const urlMapping = {
-    "2025-03-15": "https://example.com",  // 日付をキーにしてURLをマッピング
-    // 他のURLも追加できます
-};
+// URLを日付ごとに変更するためのファイルパス
+const urlFilePath = path.join(__dirname, 'current_url.txt');
 
-// 静的ファイルを提供
+// publicフォルダ内の静的ファイルを配信
 app.use(express.static('public'));
 
-// プロキシリクエスト処理
-app.get('/fetch', async (req, res) => {
-    const url = req.query.url;
-    if (!url) return res.status(400).send('URL is required');
+/**
+ * 新しいURLを生成する（例として日付による固定URL）
+ */
+function getNewUrl() {
+  const today = new Date();
+  // ※例: 毎日異なるドメイン名（実際の運用では適切なURL生成方法に変更してください）
+  const newUrl = `https://example-${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}.com`;
+  return newUrl;
+}
 
+/**
+ * 新しいURLをファイルに保存する
+ */
+function saveNewUrl() {
+  const newUrl = getNewUrl();
+  fs.writeFileSync(urlFilePath, newUrl, 'utf8');
+}
+
+/**
+ * ファイルから現在のURLを取得する
+ */
+function getCurrentUrl() {
+  try {
+    return fs.readFileSync(urlFilePath, 'utf8');
+  } catch (err) {
+    console.error('URL読み込みエラー:', err);
+    return null;
+  }
+}
+
+// サーバー起動時にファイルがなければ初期生成
+if (!fs.existsSync(urlFilePath)) {
+  saveNewUrl();
+}
+
+/**
+ * axiosによるURL取得をリトライ付きで実施する関数
+ */
+async function fetchURL(targetUrl, retries = 3) {
+  while (retries > 0) {
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            },
-            redirect: 'follow', // リダイレクトを許可
-            follow: 20, // 最大リダイレクト回数
-        });
-
-        if (!response.ok) {
-            return res.status(response.status).send(`Error: ${response.statusText}`);
-        }
-
-        let body = await response.text();
-
-        // すべてのリンクをプロキシ経由に変更
-        body = body.replace(/href="(.*?)"/g, (match, link) => {
-            if (link.startsWith('http')) {
-                return `href="/fetch?url=${encodeURIComponent(link)}"`;
-            }
-            return match;
-        });
-
-        res.type('text/html');
-        res.send(body);
+      return await axios.get(targetUrl, { responseType: 'arraybuffer', timeout: 10000 });
     } catch (error) {
-        console.error('Fetch error:', error.message);
-        res.status(500).send(`Error fetching URL: ${error.message}`);
+      retries--;
+      if (retries === 0) {
+        throw error;
+      }
     }
-});
+  }
+}
 
-// URL変更の処理
-app.get('/redirect', (req, res) => {
-    const today = new Date().toISOString().split('T')[0];  // 今日の日付を取得
-    const newUrl = urlMapping[today];
-    if (newUrl) {
-        res.redirect(newUrl);  // 新しいURLにリダイレクト
+// /fetch?url=… でリモートURLの内容を取得するエンドポイント
+app.get('/fetch', async (req, res) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    return res.status(400).send('URLパラメータが必要です');
+  }
+
+  // URLに「category」または「カテゴリー」が含まれている場合はブロック
+  if (/category|カテゴリー/i.test(targetUrl)) {
+    return res.status(403).send('カテゴリーのアクセスは禁止されています');
+  }
+
+  try {
+    const response = await fetchURL(targetUrl);
+    const contentType = response.headers['content-type'] || 'text/html';
+    res.set('Content-Type', contentType);
+
+    // HTMLの場合はリンク・フォームの書き換えを行い、プロキシ経由でのアクセスを可能にする
+    if (contentType.includes('text/html')) {
+      let html = response.data.toString('utf8');
+      const $ = cheerio.load(html);
+
+      // <a>タグの書き換え
+      $('a').each((i, elem) => {
+        const href = $(elem).attr('href');
+        if (href) {
+          try {
+            // 絶対パスでなければ、targetUrl を基準に解決
+            const newHref = new URL(href, targetUrl).href;
+            $(elem).attr('href', '/fetch?url=' + encodeURIComponent(newHref));
+            // リンククリック時、現在のiframe内で読み込むようにする
+            $(elem).attr('target', '_self');
+          } catch (error) {
+            // 書き換えできない場合はそのまま
+          }
+        }
+      });
+
+      // <form>タグの書き換え（action属性）
+      $('form').each((i, elem) => {
+        const action = $(elem).attr('action');
+        if (action) {
+          try {
+            const newAction = new URL(action, targetUrl).href;
+            $(elem).attr('action', '/fetch?url=' + encodeURIComponent(newAction));
+          } catch (error) {
+            // エラー時はそのまま
+          }
+        }
+      });
+
+      // 変更後のHTMLを送信
+      html = $.html();
+      res.send(html);
     } else {
-        res.status(404).send('URL not found for today');
+      // HTML以外のコンテンツはそのまま送信
+      res.send(response.data);
     }
+  } catch (error) {
+    console.error('URL取得エラー:', error);
+    res.status(500).send('指定URLの取得に失敗しました');
+  }
 });
 
+// 古いURLでアクセスがあった場合、新しいURLにリダイレクトする処理
+app.get('/old-url', (req, res) => {
+  const currentUrl = getCurrentUrl();
+  if (currentUrl) {
+    res.redirect(301, `/fetch?url=${encodeURIComponent(currentUrl)}`);
+  } else {
+    res.status(500).send('URLが更新されていません');
+  }
+});
+
+// サーバー起動
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  console.log(`Server running on port ${port}`);
+  // 24時間ごとにURLを更新（例として24時間毎に実施）
+  setInterval(() => {
+    saveNewUrl();
+    console.log('新しいURLに更新されました');
+  }, 24 * 60 * 60 * 1000);
 });
