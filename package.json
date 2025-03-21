@@ -1,14 +1,5 @@
 {
-  "name": "web-proxy",
-  "version": "1.0.0",
-  "description": "Onrender上で動作するシンプルなウェブプロキシー（reflect4.me 用）",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "axios": "^1.4.0",
-    "cheerio": "^1.0.0-rc.12",
-    "express": "^4.18.2"
+    "dependencies": {
+      "bcrypt": "^5.0.0"
+    }
   }
-}
