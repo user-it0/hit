@@ -7,18 +7,17 @@ exports.handler = async function(event) {
 
     const { email, password } = JSON.parse(event.body);
 
-    // ここでデータベースに保存されたメールアドレスとパスワード（暗号化済み）を照合
-    // 例：データベースからユーザー情報を取得
+    // データベースからユーザー情報を取得
     const user = await getUserByEmail(email);
 
     if (!user) {
-        return { statusCode: 401, body: JSON.stringify({ message: 'メールアドレスが存在しません' }) };
+        return { statusCode: 401, body: JSON.stringify({ message: 'メールアドレスが存在しないか、間違っています。' }) };
     }
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatch) {
-        return { statusCode: 401, body: JSON.stringify({ message: 'パスワードが間違っています' }) };
+        return { statusCode: 401, body: JSON.stringify({ message: 'パスワードが間違っています。' }) };
     }
 
     return { statusCode: 200, body: JSON.stringify({ message: 'ログイン成功' }) };
